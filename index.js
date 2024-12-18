@@ -14,6 +14,33 @@ const db = new sqlite3.Database('./expenses.db', (err) => {
         return;
     }
     console.log('Connected to the SQLite database.');
+
+    // Update the database schema to add new columns if they do not exist
+    db.serialize(() => {
+        db.run(`ALTER TABLE expenses ADD COLUMN category TEXT`, (err) => {
+            if (err && !err.message.includes("duplicate column name")) {
+                console.error("Error adding 'category' column:", err.message);
+            }
+        });
+
+        db.run(`ALTER TABLE expenses ADD COLUMN day INTEGER`, (err) => {
+            if (err && !err.message.includes("duplicate column name")) {
+                console.error("Error adding 'day' column:", err.message);
+            }
+        });
+
+        db.run(`ALTER TABLE expenses ADD COLUMN month INTEGER`, (err) => {
+            if (err && !err.message.includes("duplicate column name")) {
+                console.error("Error adding 'month' column:", err.message);
+            }
+        });
+
+        db.run(`ALTER TABLE expenses ADD COLUMN year INTEGER`, (err) => {
+            if (err && !err.message.includes("duplicate column name")) {
+                console.error("Error adding 'year' column:", err.message);
+            }
+        });
+    });
 });
 
 // Create the "expenses" table if it doesn't already exist
@@ -22,10 +49,10 @@ db.run(`
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         description TEXT NOT NULL,
         amount REAL NOT NULL,
-        category TEXT NOT NULL,
-        day INTEGER NOT NULL,
-        month INTEGER NOT NULL,
-        year INTEGER NOT NULL
+        category TEXT,
+        day INTEGER,
+        month INTEGER,
+        year INTEGER
     )
 `, (err) => {
     if (err) {
@@ -75,9 +102,9 @@ app.get('/expenses', (req, res) => {
 app.post('/expenses', (req, res) => {
     const { description, amount, category, day, month, year } = req.body;
 
-    // Ensure all fields are provided
+    // Ensure required fields are provided
     if (!description || !amount || !category || !day || !month || !year) {
-        return res.status(400).send('All fields (description, amount, category, day, month, year) are required');
+        return res.status(400).send('All fields are required');
     }
 
     // Insert the new expense into the database
