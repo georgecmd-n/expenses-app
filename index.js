@@ -21,7 +21,11 @@ db.run(`
     CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         description TEXT NOT NULL,
-        amount REAL NOT NULL
+        amount REAL NOT NULL,
+        category TEXT NOT NULL,
+        day INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+        year INTEGER NOT NULL
     )
 `, (err) => {
     if (err) {
@@ -34,9 +38,31 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Route to get all expenses
+// Route to get all expenses with optional filters
 app.get('/expenses', (req, res) => {
-    db.all('SELECT * FROM expenses', [], (err, rows) => {
+    const { category, day, month, year } = req.query;
+
+    let query = 'SELECT * FROM expenses WHERE 1=1';
+    const params = [];
+
+    if (category) {
+        query += ' AND category = ?';
+        params.push(category);
+    }
+    if (day) {
+        query += ' AND day = ?';
+        params.push(day);
+    }
+    if (month) {
+        query += ' AND month = ?';
+        params.push(month);
+    }
+    if (year) {
+        query += ' AND year = ?';
+        params.push(year);
+    }
+
+    db.all(query, params, (err, rows) => {
         if (err) {
             console.error('Error fetching expenses:', err.message);
             return res.status(500).send('Error fetching expenses');
@@ -47,23 +73,23 @@ app.get('/expenses', (req, res) => {
 
 // Route to add an expense
 app.post('/expenses', (req, res) => {
-    const { description, amount } = req.body;
+    const { description, amount, category, day, month, year } = req.body;
 
-    // Ensure description and amount are provided
-    if (!description || !amount) {
-        return res.status(400).send('Description and amount are required');
+    // Ensure all fields are provided
+    if (!description || !amount || !category || !day || !month || !year) {
+        return res.status(400).send('All fields (description, amount, category, day, month, year) are required');
     }
 
     // Insert the new expense into the database
-    const query = 'INSERT INTO expenses (description, amount) VALUES (?, ?)';
-    db.run(query, [description, amount], function (err) {
+    const query = 'INSERT INTO expenses (description, amount, category, day, month, year) VALUES (?, ?, ?, ?, ?, ?)';
+    db.run(query, [description, amount, category, day, month, year], function (err) {
         if (err) {
             console.error('Error adding expense:', err.message);
             return res.status(500).send('Error adding expense');
         }
 
         // Respond with the newly added expense
-        res.status(201).json({ id: this.lastID, description, amount });
+        res.status(201).json({ id: this.lastID, description, amount, category, day, month, year });
     });
 });
 
